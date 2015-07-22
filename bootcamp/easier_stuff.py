@@ -35,6 +35,57 @@ GO_MEMBERSHIP = os.path.join(app.root_path, 'data', 'go_membership.txt')
 # ratios versus untreated control.
 EXPERIMENT_FILE = os.path.join(app.root_path, 'data', 'experiment_data.txt')
 
+import csv
+from collections import defaultdict
+
+with open(EXPERIMENT_FILE) as f:
+    rdr = csv.reader(f, delimiter='\t')
+    h = rdr.next()[1:]
+    rows = list(rdr)
+
+    _exp_data = dict()
+
+    for i,exp_name in enumerate(h):
+        _exp_data[i] = [(row[0],float(row[i+1])) for row in rows]
+
+
+with open(GENE_INFO) as f:
+    rdr = csv.DictReader(f, delimiter='\t')
+
+    _gene_names = dict()
+    _gene_info = dict()
+
+    for row in rdr:
+        _gene_names[row['systematic_name']] = row['gene_name']
+        _gene_info[row['systematic_name']] = row['gene_description']
+
+
+with open(GO_INFO) as f:
+    rdr = csv.DictReader(f, delimiter='\t')
+
+    _go_info = dict()
+    _go_aspect = defaultdict(set)
+
+    for row in rdr:
+        _go_info[row['goid']] = (row['go_term'], row['go_aspect'], row['go_definition'])
+        _go_aspect[row['go_aspect']].add(row['goid'])
+
+    _go_aspect = {g:sorted(_go_aspect[g]) for g in _go_aspect}
+
+
+with open(GO_MEMBERSHIP) as f:
+    rdr = csv.DictReader(f, delimiter='\t')
+
+    _gene_to_go = defaultdict(set)
+    _go_to_gene = defaultdict(set)
+
+    for row in rdr:
+        _gene_to_go[row['systematic_name']].add(row['goid'])
+        _go_to_gene[row['goid']].add(row['systematic_name'])
+
+    _gene_to_go = {g:sorted(_gene_to_go[g]) for g in _gene_to_go}
+    _go_to_gene = {g:sorted(_go_to_gene[g]) for g in _go_to_gene}
+
 
 # return a list or dictionary that maps from the id of an experiment (an int: 0, 1, ..)
 # to a list of (systematic name, fold-change value) tuples
@@ -42,42 +93,42 @@ EXPERIMENT_FILE = os.path.join(app.root_path, 'data', 'experiment_data.txt')
 #       [('YAL001C', -0.58), ('YAL002W', 0.23), ('YAL003W', -0.25), ... ],
 #        ... ]
 def experiment():
-    pass
+    return _exp_data
 
 
 # map from a gene's systematic name to its standard name
 # e.g. gene_name('YGR188C') returns 'BUB1'
 def gene_name(gene):
-    pass
+    _gene_names[gene]
 
 
 # map from a systematic name to some info about the gene (whatever you want),
 # e.g  'YGR188C' -> 'Protein kinase involved in the cell cycle checkpoint into anaphase'
 def gene_info(gene):
-    pass
+    _gene_info[gene]
 
 
 # map from a systematic name to a list of GOIDs that the gene is associated with
 # e.g. 'YGR188C' -> ['GO:0005694', 'GO:0000775', 'GO:0000778', ... ]
 def gene_to_go(gene):
-    pass
+    return _gene_to_go[gene]
 
 
 # map from one of the GO aspects (P, F, and C, for Process, Function, Component),
 # to a list of all the GOIDs in that aspect
 # e.g. 'C' -> ['GO:0005737', 'GO:0005761', 'GO:0005763', ... ]
 def go_aspect(aspect):
-    pass
+    return _go_aspect[aspect]
 
 
 # map from a GOID (e.g. GO:0005737) to a *tuple* of the term and term definition
 # e.g. 'GO:0005737' -> ('cytoplasm', 'All of the contents of a cell... (etc)'
 def go_info(goid):
-    pass
+    return _go_info[goid]
 
 
 # the reverse of the gene_to_go function: map from a GOID
 # to a list of genes (systematic names)
 # e.g. 'GO:0005737' -> ['YAL001C', 'YAL002W', 'YAL003W', ... ]
 def go_to_gene(goid):
-    pass
+    return go_to_gene[goid]
