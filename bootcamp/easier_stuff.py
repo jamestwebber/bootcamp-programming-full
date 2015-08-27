@@ -131,4 +131,4 @@ def go_info(goid):
 # to a list of genes (systematic names)
 # e.g. 'GO:0005737' -> ['YAL001C', 'YAL002W', 'YAL003W', ... ]
 def go_to_gene(goid):
-    return go_to_gene[goid]
+    return _go_to_gene[goid]
