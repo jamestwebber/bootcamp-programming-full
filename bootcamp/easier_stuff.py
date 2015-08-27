@@ -44,10 +44,13 @@ with open(EXPERIMENT_FILE) as f:
     rows = list(rdr)
 
     _exp_data = dict()
+    _exp_data_by_gene = defaultdict(list)
 
     for i,exp_name in enumerate(h):
         _exp_data[i] = [(row[0],float(row[i+1])) for row in rows]
 
+        for g,v in _exp_data[i]:
+            _exp_data_by_gene[g].append(v)
 
 with open(GENE_INFO) as f:
     rdr = csv.DictReader(f, delimiter='\t')
@@ -102,6 +105,10 @@ def gene_name(gene):
     return _gene_names[gene]
 
 
+def gene_data(gene):
+    return _exp_data_by_gene[gene]
+
+
 # map from a systematic name to some info about the gene (whatever you want),
 # e.g  'YGR188C' -> 'Protein kinase involved in the cell cycle checkpoint into anaphase'
 def gene_info(gene):
@@ -131,4 +138,4 @@ def go_info(goid):
 # to a list of genes (systematic names)
 # e.g. 'GO:0005737' -> ['YAL001C', 'YAL002W', 'YAL003W', ... ]
 def go_to_gene(goid):
-    return go_to_gene[goid]
+    return _go_to_gene[goid]
