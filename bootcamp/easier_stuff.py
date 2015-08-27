@@ -99,13 +99,13 @@ def experiment():
 # map from a gene's systematic name to its standard name
 # e.g. gene_name('YGR188C') returns 'BUB1'
 def gene_name(gene):
-    _gene_names[gene]
+    return _gene_names[gene]
 
 
 # map from a systematic name to some info about the gene (whatever you want),
 # e.g  'YGR188C' -> 'Protein kinase involved in the cell cycle checkpoint into anaphase'
 def gene_info(gene):
-    _gene_info[gene]
+    return _gene_info[gene]
 
 
 # map from a systematic name to a list of GOIDs that the gene is associated with
