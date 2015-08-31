@@ -105,6 +105,9 @@ def gene_name(gene):
     return _gene_names[gene]
 
 
+# map from a gene's systematic name to a list of the values for that gene,
+# across all of the experiments.
+# e.g. gene_data('YGR188C') returns [-0.09, 0.2, -0.07, ... ]
 def gene_data(gene):
     return _exp_data_by_gene[gene]
 
