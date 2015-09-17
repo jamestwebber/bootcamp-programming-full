@@ -17,10 +17,12 @@ def homepage():
 
     if exp_data is not None:
         exps = np.random.randint(0, len(exp_data), size=10)
+        fig_dict = hs.plot_experiment_clusters(exp_data)
     else:
         exps = []
+        fig_dict = None
 
-    return render_template("index.html", experiments=exps)
+    return render_template("index.html", experiments=exps, fig_dict=fig_dict)
 
 
 @app.route('/gene/<gene>')

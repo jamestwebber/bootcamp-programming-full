@@ -21,4 +21,19 @@
     <div class="col-md-4">...or there <em>would</em> be if you implemented <code>experiment()</code></div>
   </div>
 {% endfor %}
+<div class="row">
+  <div class="col-md-8 h3">Clusters</div>
+</div>
+<div class="row">
+  <div class="col-md-8" id="fig01">{% if not fig_dict %}There could be a cool figure here, if you implement <code>plot_experiment_clusters()</code>{% endif %}</div>
+</div>
+{% if fig_dict %}
+<script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript" src="http://mpld3.github.io/js/mpld3.v0.1.js"></script>
+<script type="text/javascript">
+  var json01 = {{ fig_dict | tojson }};
+  mpld3.draw_figure("fig01", json01);
+</script>
+{% endif %}
+
 {%- endblock %}
