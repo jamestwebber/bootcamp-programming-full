@@ -17,7 +17,7 @@ def homepage():
 
     if exp_data is not None:
         exps = np.random.randint(0, len(exp_data), size=10)
-        fig_dict = hs.plot_experiment_clusters(exp_data)
+        fig_dict = hs.plot_experiment_clusters()
     else:
         exps = []
         fig_dict = None
