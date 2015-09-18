@@ -131,8 +131,8 @@ def go_aspect(aspect):
     return _go_aspect[aspect]
 
 
-# map from a GOID (e.g. GO:0005737) to a *tuple* of the term and term definition
-# e.g. 'GO:0005737' -> ('cytoplasm', 'All of the contents of a cell... (etc)'
+# map from a GOID (e.g. GO:0005737) to a *tuple* of the term, aspect, and term definition
+# e.g. 'GO:0005737' -> ('cytoplasm', 'C', 'All of the contents of a cell... (etc)'
 def go_info(goid):
     return _go_info[goid]
 

@@ -6,6 +6,8 @@
 # Feel free to add even more features if you like--the backend code is simple to figure
 # out. But don't forget to help your teammates, and to figure out your perturbation!
 
+import easier_stuff as es
+
 from collections import Counter, defaultdict
 
 import numpy as np
@@ -58,6 +60,118 @@ def calculate_enrichment(gene_data, go_to_genes, n=100):
                        key=lambda (go,s): s, reverse=True)
 
     return e_scores,ne_scores
+
+
+# inputs:
+# - the index for a single experiment (an int: 0, 1, ..)
+# - a list or dictionary that maps from id to experiment data--this will be
+#   the output from easier_stuff.experiment()
+# - an int, N, to use as a parameter
+#
+# outputs:
+# - a list of the N most similar experiments (determined however you like)
+#
+def similar_experiments(exp, exp_data, n=10):
+    # this assumes data for every experiment is in the same order...
+    comp_e = lambda i: 1.0 - st.pearsonr([v for g,v in exp_data[exp]],
+                                         [v for g,v in exp_data[i]])[0]
+
+    most_similar = sorted([i for i in range(len(exp_data)) if i != exp],
+                          key=comp_e)[:n]
+
+    return most_similar
+
+
+def go2gene_network(goid, n, graph=None):
+    if graph is None:
+        graph = {'nodes': [{'id': goid, 'node_type': es.go_info(goid)[1], 'name': es.go_info(goid)[0]}],
+                 'links': [],
+                 'nodeset': {goid}}
+
+    node_i = len(graph['nodes']) - 1
+
+    if n <= 0:
+        return graph
+
+    gene_list = es.go_to_gene(goid)
+
+    if len(gene_list) > 100:
+        graph['links'].append({'source': node_i, 'target': len(graph['nodes'])})
+        graph['nodes'].append({'id': '', 'node_type': 'gene',
+                               'name': '({} genes)'.format(len(gene_list))})
+        return graph
+
+    for gene in gene_list:
+        if gene in graph['nodeset']:
+            continue
+        graph['links'].append({'source': node_i, 'target': len(graph['nodes'])})
+        graph['nodes'].append({'id': gene, 'node_type': 'gene', 'name': es.gene_name(gene)})
+        graph['nodeset'].add(gene)
+        gene2go_network(gene, n - 1, graph)
+
+    return graph
+
+
+def gene2go_network(gene, n, graph=None):
+    if graph is None:
+        graph = {'nodes': [{'id': gene, 'node_type': 'gene', 'name': es.gene_name(gene)}],
+                 'links': [],
+                 'nodeset': {gene}}
+
+    node_i = len(graph['nodes']) - 1
+
+    if n <= 0:
+        return graph
+
+    for goid in es.gene_to_go(gene):
+        if goid in graph['nodeset']:
+            continue
+        graph['nodes'].append({'id': goid, 'node_type': es.go_info(goid)[1], 'name': es.go_info(goid)[0]})
+        graph['links'].append({'source': node_i, 'target': len(graph['nodes']) - 1})
+        graph['nodeset'].add(goid)
+        go2gene_network(goid, n - 1, graph)
+
+    return graph
+
+
+# inputs:
+# - a goid or gene systematic name
+# - a flag that is True when the previous input is a goid
+# - an int n that describes how many steps in the network
+#
+# note: your browser will get cranky if there are too many nodes
+#
+# outputs:
+# - a dictionary containing two keys: 'nodes' and 'links'
+#   'nodes' : a list of node dictionaries, of the form:
+#             {'id': goid or gene systematic name,
+#               'name': go or gene name
+#               'node_type': go aspect or 'gene'}
+#   'links' : a list of edge dictionaries, of the form:
+#             {'source': index of the source node,
+#              'target': index of the target node}
+#   where the indexes point to nodes in the 'nodes' list
+#
+#  e.g. go_network('GO:0006383') returns
+#  { 'nodes': [{'id': u'GO:0006383',
+#               'name': 'transcription from RNA polymerase III promoter',
+#               'node_type': 'P'},
+#              {'id': 'YAL001C', 'name': 'TFC3', 'node_type': 'gene'},
+#              {'id': 'YBR123C', 'name': 'TFC1', 'node_type': 'gene'},
+#              ...
+#             ]
+#    'links': [{'source': 0, 'target': 1},
+#              {'source': 0, 'target': 2},
+#              {'source': 0, 'target': 3}
+#              ...
+#             ]
+def go_network(goid_or_gene, is_goid=True, n=2):
+    if is_goid:
+        gnet = go2gene_network(goid_or_gene, n)
+    else:
+        gnet = gene2go_network(goid_or_gene, n)
+
+    return {'nodes': gnet['nodes'], 'links': gnet['links']}
 
 
 # You can make your website fancier by creating a figure for each experiment

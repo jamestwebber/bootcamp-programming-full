@@ -25,8 +25,13 @@ def homepage():
     return render_template("index.html", experiments=exps, fig_dict=fig_dict)
 
 
+@app.route('/gene/')
 @app.route('/gene/<gene>')
-def gene_info(gene):
+def gene_info(gene=None):
+    if gene is None:
+        flash("That page needs a gene ID")
+        return redirect(url_for("homepage"))
+
     gene_name = es.gene_name(gene)
     gene_info = es.gene_info(gene)
     if gene_name is None or gene_info is None:
@@ -46,13 +51,25 @@ def gene_info(gene):
         gene_hist,bins = np.histogram(gene_data, bins=np.linspace(-8, 8, 33))
         hist_data = zip(bins[:-1], gene_hist)
 
+    local_network = hs.go_network(gene, False, 2)
+    if local_network is None:
+        flash("You should implement <code>go_network()</code>")
+    elif len(local_network['nodes']) > 1000:
+        flash("Too many nodes to plot a network, forget it")
+        local_network = {'nodes': [], 'links': []}
+
     return render_template("gene.html", gene_name=gene_name,
                            gene_info=gene_info, go_terms=go_terms,
-                           hist_data=hist_data)
+                           hist_data=hist_data, local_network=local_network)
 
 
+@app.route('/goid/')
 @app.route('/goid/<goid>')
-def go_term_info(goid):
+def go_term_info(goid=None):
+    if goid is None:
+        flash("That page needs a GOID")
+        return redirect(url_for("homepage"))
+
     go_info = es.go_info(goid)
     genes = es.go_to_gene(goid)
     if go_info is None or genes is None:
@@ -64,20 +81,39 @@ def go_term_info(goid):
 
     genes = [(gene, es.gene_name(gene)) for gene in es.go_to_gene(goid)]
 
-    return render_template("go_term.html", go_info=go_info, genes=genes)
+    local_network = hs.go_network(goid, True, 1)
+    if local_network is None:
+        flash("You could maybe implement <code>go_network()</code>")
+    elif len(local_network['nodes']) > 1000:
+        flash("Too many nodes to plot a network, forget it")
+        local_network = {'nodes': [], 'links': []}
+
+    return render_template("go_term.html", go_info=go_info, genes=genes,
+                           local_network=local_network)
 
 
 @app.route('/experiment/<int:exp>')
-def experiment(exp):
+@app.route('/experiment/<int:exp>/<int:n>')
+def experiment(exp, n=10):
     exp_data = es.experiment()
     if exp_data is not None:
         genes = [(es.gene_name(g) or 'Implement gene_name()!', v)
                  for g,v in exp_data[exp]]
         fig_dict = hs.plot_experiment(genes)
-    else:
-        fig_dict = None
+        if fig_dict is None:
+            flash("You could maybe implement <code>plot_experiment()</code>")
 
-    return render_template("experiment.html", exp=exp, fig_dict=fig_dict)
+        similar_exp = hs.similar_experiments(exp, exp_data, n)
+        if similar_exp is None:
+            flash("You could maybe implement <code>similar_experiments()</code>")
+            similar_exp = []
+    else:
+        flash("You should implement <code>experiment()</code> and <code>plot_experiment()</code>")
+        fig_dict = None
+        similar_exp = []
+
+    return render_template("experiment.html", exp=exp, n=n,
+                           fig_dict=fig_dict, similar_exp=similar_exp)
 
 
 @app.route('/experiment/<int:exp>/<top_or_bottom>')
