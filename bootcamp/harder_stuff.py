@@ -6,20 +6,22 @@
 # Feel free to add even more features if you like--the backend code is simple to figure
 # out. But don't forget to help your teammates, and to figure out your perturbation!
 
-import easier_stuff as es
+import os
 
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 import numpy as np
 import scipy.stats as st
 
 import scipy.cluster.hierarchy as sch
 
-import matplotlib.pyplot as plt
-
 import matplotlib.figure
 import matplotlib.colors
 from matplotlib.gridspec import GridSpec
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+import mpld3
+import matplotlib.pyplot as plt
 
 import easier_stuff as es
 
@@ -158,13 +160,13 @@ def gene2go_network(gene, n, graph=None):
 #               'node_type': 'P'},
 #              {'id': 'YAL001C', 'name': 'TFC3', 'node_type': 'gene'},
 #              {'id': 'YBR123C', 'name': 'TFC1', 'node_type': 'gene'},
-#              ...
-#             ]
+#              ...],
 #    'links': [{'source': 0, 'target': 1},
 #              {'source': 0, 'target': 2},
 #              {'source': 0, 'target': 3}
-#              ...
-#             ]
+#              ...]
+#  }
+#
 def go_network(goid_or_gene, is_goid=True, n=2):
     if is_goid:
         gnet = go2gene_network(goid_or_gene, n)
@@ -175,12 +177,8 @@ def go_network(goid_or_gene, is_goid=True, n=2):
 
 
 # You can make your website fancier by creating a figure for each experiment
-# (it's up to your what this displays). Install the mpld3 module with pip:
-#    pip install mpld3
-# and read their website to get started: http://mpld3.github.io/index.html
-
-# uncomment this line to import the module after you've installed it
-import mpld3
+# We've set it up for you to use mpld3 for this.
+# Read their website to get started: http://mpld3.github.io/index.html
 
 # input:
 # - a list of [(gene name, gene value) ... ]
@@ -217,18 +215,30 @@ def plot_experiment(gene_data):
     # This will be converted to JSON in the browser
     return mpld3_dict
 
-import os
-import pickle
 
-if os.path.exists('clustering.pickle'):
-    with open('clustering.pickle') as f:
-        _exp_matrix,Y1,Y2,idx1,idx2,_gene_labels = pickle.load(f)
-    print "loaded pickle"
-else:
+# input:
+# - a list or dictionary that maps from the id of an experiment (an int: 0, 1, ..)
+#   to a list of (systematic name, fold-change value) tuples--this will be the output
+#   from easier_stuff.experiment()
+#
+# output:
+# - the path to a figure
+#
+# The function should plot a summary figure for all the experiments (whatever you like,
+# but perhaps a clustering?), save the figure as an image, and return the path to that
+# figure. Note: you should save the figure somewhere in the "bootcamp" folder but you
+# should omit that name from the return value.
+#
+# e.g. plot_experiment_overview(exp_data) saves a figure to "bootcamp/static/a_figure.png"
+#      and it returns the path "static/a_figures.png" as its output
+#
+def plot_experiment_overview(experiment_data):
+    if os.path.exists('bootcamp/static/clustering.png'):
+        return 'static/clustering.png'
 
-    _gene_labels = [g for g,v in es.experiment()[0]]
-    _exp_matrix = np.vstack([[v for g,v in es.experiment()[i]]
-                             for i in sorted(es.experiment())])
+    _gene_labels = [g for g,v in experiment_data[0]]
+    _exp_matrix = np.vstack([[v for g,v in experiment_data[i]]
+                             for i in sorted(experiment_data)])
     print "clustering experiments"
     Y1 = sch.linkage(_exp_matrix, method='ward', metric='euclidean')
     print "clustering genes"
@@ -238,16 +248,8 @@ else:
     _gene_labels = [_gene_labels[i] for i in idx2]
     _exp_matrix = _exp_matrix[np.ix_(idx1, idx2)]
 
-    with open('clustering.pickle', 'w') as OUT:
-        pickle.dump((_exp_matrix, Y1, Y2, idx1, idx2, _gene_labels), OUT)
 
-# input:
-# -  a list or dictionary that maps from the id of an experiment (an int: 0, 1, ..)
-#    to a list of (systematic name, fold-change value) tuples
-# output:
-# - a dictionary, created by the mpld3 module from a figure you've made (see below)
-def plot_experiment_clusters():
-    fig = plt.figure(figsize=(8.,8.))
+    fig = matplotlib.figure.Figure(figsize=(8.,8.))
 
     gs = GridSpec(2, 3, left=0.05, bottom=0.05, right=0.95, top=0.95,
                   wspace=0.05, hspace=0.05, height_ratios=(1,2), width_ratios=(4,8,1))
@@ -285,10 +287,10 @@ def plot_experiment_clusters():
                      right="off", labelright='off')
 
     ax12 = fig.add_subplot(gs[5])
-    fig.colorbar(im, cax=ax12)
+    cbar = fig.colorbar(im, cax=ax12)
     ax12.tick_params(bottom='off')
-    ax12.set_yticklabels([vmin, vmax])
+    cbar.set_ticks([vmin, 0, vmax])
 
-    mpld3_dict = mpld3.fig_to_dict(fig)
+    FigureCanvasAgg(fig).print_figure('bootcamp/static/clustering.png')
 
-    return mpld3_dict
+    return 'static/clustering.png'
